@@ -1,4 +1,17 @@
 {
+  "spellcheck": {
+    "title": "Spellcheck",
+    "enable": "Check spelling",
+    "enableHelp": "Underline misspelled words while composing.",
+    "languages": "Dictionaries",
+    "languagesHelp": "A word is accepted if it's valid in any enabled language.",
+    "addToDictionary": "Add to dictionary",
+    "ignore": "Ignore",
+    "noSuggestions": "No suggestions",
+    "addedWords": "Added words",
+    "noAddedWords": "No added words yet.",
+    "removeWord": "Remove word"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -316,7 +329,7 @@
     "linkAccountOrSignIn": "Please link an account or sign in",
     "accountSaved": "Account settings saved",
     "failedToSaveAccount": "Failed to save account.",
-    "accountEmailExists": "An account with this email address already exists.",
+    "accountEmailExists": "An account with this email address already exists and therefore can't be added.",
     "reauthorized": "{name} re-authorized successfully! Syncing...",
     "syncCompleted": "{name} sync completed",
     "failedToReauthorize": "Failed to re-authorize account.",
@@ -374,6 +387,8 @@
     "showMessageListCirclesHelp": "Show colored circles with sender initials in the message list",
     "showViewerCircles": "Show colored circles in conversation viewer",
     "showViewerCirclesHelp": "Show colored circles with sender initials in the conversation viewer",
+    "showMessageListProfilePics": "Show contact photos in message list",
+    "showMessageListProfilePicsHelp": "Show the contact's profile picture (falling back to a colored circle) in the message list. Requires \"Show colored circles in message list\".",
     "accentBarUnread": "Accent bar for unread messages",
     "accentBarUnreadHelp": "Shows a bar on the left side of unread messages for easier identification.",
     "darkMailContent": "Dark mail content",

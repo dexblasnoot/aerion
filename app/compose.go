@@ -604,7 +604,7 @@ func (a *App) syncSentFolder(accountID string) error {
 	}
 
 	// Sync progress feedback rides on the syncEngine's sync:progress callback (see app.go:438)
-	if err := a.syncEngine.SyncMessages(a.ctx, accountID, sentFolder.ID, syncPeriodDays); err != nil {
+	if err := a.syncEngine.SyncMessages(a.ctx, accountID, sentFolder.ID, syncPeriodDays, false); err != nil {
 		log.Warn().Err(err).Str("folderID", sentFolder.ID).Msg("Failed to sync Sent folder")
 	}
 

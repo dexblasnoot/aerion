@@ -18,6 +18,8 @@ import FontSize from 'tiptap-extension-font-size'
 import { parseFileUris } from './composerUtils'
 import { get } from 'svelte/store'
 import { _ } from 'svelte-i18n'
+import { Spellcheck } from '$lib/spellcheck/plugin'
+import { syncSpellcheckLanguages } from '$lib/spellcheck/settings'
 
 /**
  * Extended TextStyle to handle legacy <font> tags from signatures/pasted content
@@ -187,10 +189,14 @@ export function createComposerEditor(
   element: HTMLElement,
   handlers: ComposerEditorHandlers = {}
 ): Editor {
+  // Apply the user's spellcheck settings (on/off + enabled dictionaries).
+  syncSpellcheckLanguages()
+
   return new Editor({
     element,
     extensions: [
       StarterKit,
+      Spellcheck,
       Underline,
       ExtendedTextStyle,
       ExtendedColor,
@@ -231,6 +237,9 @@ export function createComposerEditor(
     editorProps: {
       attributes: {
         class: 'composer-editor focus:outline-none min-h-[200px] p-3',
+        // Disable native webview spellcheck; the Spellcheck extension renders
+        // its own (consistent, multi-language) squiggles in this surface.
+        spellcheck: 'false',
       },
       // Handle paste events for images
       handlePaste: (view, event) => {

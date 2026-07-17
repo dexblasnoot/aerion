@@ -33,6 +33,8 @@ export function AddMicrosoftSharedMailbox(arg1:string,arg2:string,arg3:string):P
 
 export function AddPGPKeyServer(arg1:string):Promise<void>;
 
+export function AddSpellcheckCustomWord(arg1:string):Promise<void>;
+
 export function Archive(arg1:Array<string>):Promise<void>;
 
 export function BroadcastThemeChange(arg1:string):Promise<void>;
@@ -231,6 +233,8 @@ export function GetConnectedComposers():Promise<number>;
 
 export function GetContact(arg1:string):Promise<contact.Contact>;
 
+export function GetContactPhotos(arg1:Array<string>):Promise<Array<contact.ContactPhoto>>;
+
 export function GetContactSource(arg1:string):Promise<carddav.Source>;
 
 export function GetContactSourceErrors():Promise<Array<carddav.SourceError>>;
@@ -337,6 +341,8 @@ export function GetSearchCountUnifiedInbox(arg1:string,arg2:string):Promise<numb
 
 export function GetShowMessageListCircles():Promise<boolean>;
 
+export function GetShowMessageListProfilePics():Promise<boolean>;
+
 export function GetShowTitleBar():Promise<boolean>;
 
 export function GetShowViewerCircles():Promise<boolean>;
@@ -344,6 +350,12 @@ export function GetShowViewerCircles():Promise<boolean>;
 export function GetSourceAddressbooks(arg1:string):Promise<Array<carddav.Addressbook>>;
 
 export function GetSpecialFolder(arg1:string,arg2:folder.Type):Promise<folder.Folder>;
+
+export function GetSpellcheckCustomWords():Promise<Array<string>>;
+
+export function GetSpellcheckEnabled():Promise<boolean>;
+
+export function GetSpellcheckLanguages():Promise<Array<string>>;
 
 export function GetStartHidden():Promise<boolean>;
 
@@ -499,6 +511,8 @@ export function RemoveImageAllowlist(arg1:number):Promise<void>;
 
 export function RemovePGPKeyServer(arg1:number):Promise<void>;
 
+export function RemoveSpellcheckCustomWord(arg1:string):Promise<void>;
+
 export function RemoveTrustedCertificate(arg1:string):Promise<void>;
 
 export function ReorderAccounts(arg1:Array<string>):Promise<void>;
@@ -589,9 +603,15 @@ export function SetSMIMESignPolicy(arg1:string,arg2:string):Promise<void>;
 
 export function SetShowMessageListCircles(arg1:boolean):Promise<void>;
 
+export function SetShowMessageListProfilePics(arg1:boolean):Promise<void>;
+
 export function SetShowTitleBar(arg1:boolean):Promise<void>;
 
 export function SetShowViewerCircles(arg1:boolean):Promise<void>;
+
+export function SetSpellcheckEnabled(arg1:boolean):Promise<void>;
+
+export function SetSpellcheckLanguages(arg1:Array<string>):Promise<void>;
 
 export function SetStartHidden(arg1:boolean):Promise<void>;
 

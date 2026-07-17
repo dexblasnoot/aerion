@@ -6,6 +6,7 @@
   import Icon from '@iconify/svelte'
   import Composer from './lib/components/composer/Composer.svelte'
   import ToastContainer from './lib/components/ui/toast/ToastContainer.svelte'
+  import SpellSuggestionMenu from './lib/spellcheck/SpellSuggestionMenu.svelte'
   import { addToast } from '$lib/stores/toast'
   import { _ } from '$lib/i18n'
   import { createComposerWindowApi } from '$lib/composerApi'
@@ -277,3 +278,6 @@
 
 <!-- Toast notifications -->
 <ToastContainer />
+
+<!-- Spellcheck right-click suggestion menu -->
+<SpellSuggestionMenu />

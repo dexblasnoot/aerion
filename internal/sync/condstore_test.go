@@ -118,3 +118,28 @@ func TestNextModSeq_PrevZero_AdvancesOnSuccess(t *testing.T) {
 		t.Errorf("nextModSeq(ok=true, mailbox=500, prev=0) = %d, want 500 (first-sync advancement)", got)
 	}
 }
+
+// TestDueForFullFlagSweep verifies the periodic full-sweep cadence that lets a
+// broken/partial CONDSTORE self-heal: every flagFullSweepEvery-th call returns
+// true, per folder, independently.
+func TestDueForFullFlagSweep(t *testing.T) {
+	e := &Engine{flagSweepCounter: map[string]int{}}
+
+	fulls := 0
+	for i := 1; i <= flagFullSweepEvery*2; i++ {
+		if e.dueForFullFlagSweep("inbox") {
+			fulls++
+			if i%flagFullSweepEvery != 0 {
+				t.Errorf("full sweep fired at cycle %d, expected only multiples of %d", i, flagFullSweepEvery)
+			}
+		}
+	}
+	if fulls != 2 {
+		t.Errorf("expected 2 full sweeps over %d cycles, got %d", flagFullSweepEvery*2, fulls)
+	}
+
+	// Counters are independent per folder.
+	if e.dueForFullFlagSweep("other") {
+		t.Error("first call for a new folder should not trigger a full sweep")
+	}
+}

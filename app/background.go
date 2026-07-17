@@ -101,6 +101,15 @@ func (a *App) processIdleEvents(ctx context.Context) {
 	defer recoverPanic("app.idle", "process IDLE events")
 	log := logging.WithComponent("app.idle")
 
+	// Per-account debounce for flag-change re-syncs. A single read/unread action
+	// on another client can emit a burst of unilateral FETCHes; coalesce them
+	// into one inbox flag re-sync so IDLE stays light. Accessed only from this
+	// goroutine, so no lock needed.
+	flagDebounce := make(map[string]*time.Timer)
+	// Same idea for EXPUNGE: a bulk delete/move on another client emits a burst
+	// of EXPUNGEs; coalesce them into one lightweight deletion reconcile.
+	expungeDebounce := make(map[string]*time.Timer)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -119,12 +128,38 @@ func (a *App) processIdleEvents(ctx context.Context) {
 				go a.handleIdleNewMail(event)
 
 			case imap.EventExpunge:
-				// TODO: deliberately not wired — triggering a folder sync on every IDLE expunge
-				// would make IDLE too chatty for a lightweight client. Reconsider for v0.3.0+.
-				// Stale state until next scheduled sync is an accepted tradeoff.
+				// A message was removed on the server. RFC-strict servers (Dovecot,
+				// mailcow, etc.) signal a delete with EXPUNGE only — no follow-up
+				// EXISTS — so, unlike Gmail, nothing trips the new-mail path and the
+				// deletion would otherwise wait for the next scheduled sync. Debounce
+				// a burst (bulk delete/move) into one lightweight reconcile whose UID
+				// diff removes the rows. INBOX only, matching IDLE's scope.
+				acctID := event.AccountID
+				if t := expungeDebounce[acctID]; t != nil {
+					t.Stop()
+				}
+				expungeDebounce[acctID] = time.AfterFunc(idleExpungeDebounce, func() {
+					a.handleIdleExpunge(acctID)
+				})
 
 			case imap.EventFlagsChanged:
-				// TODO: same tradeoff as EventExpunge above — deliberately not wired.
+				// A flag changed on the server. Debounce, then re-sync the inbox
+				// flags so read/unread state realigns in near real-time — INBOX
+				// only, matching IDLE's scope.
+				acctID := event.AccountID
+				// Ignore the echo of our OWN flag writes so reading mail in
+				// Aerion doesn't trigger a self-inflicted sync; only other
+				// clients' changes re-sync.
+				if a.recentOwnFlagChange(acctID) {
+					log.Debug().Str("accountID", acctID).Msg("Ignoring IDLE flag echo of our own change")
+					break
+				}
+				if t := flagDebounce[acctID]; t != nil {
+					t.Stop()
+				}
+				flagDebounce[acctID] = time.AfterFunc(idleFlagResyncDebounce, func() {
+					a.handleIdleFlagsChanged(acctID)
+				})
 			}
 		}
 	}
@@ -264,6 +299,160 @@ func (a *App) handleIdleNewMail(event imap.MailEvent) {
 	// Notify about new mail if any
 	if newMailInfo != nil && newMailInfo.Count > 0 {
 		a.handleNewMailNotification(*newMailInfo)
+	}
+}
+
+// idleFlagResyncDebounce coalesces a burst of IDLE flag-change notifications
+// (a multi-message action on another client can emit several) into one inbox
+// flag re-sync. Own-change suppression already removes the burst from our own
+// reads, so a short window is enough to keep the update near real-time.
+const idleFlagResyncDebounce = 1 * time.Second
+
+// idleExpungeDebounce coalesces a burst of IDLE EXPUNGE notifications (a bulk
+// delete/move on another client emits one per message) into a single lightweight
+// deletion reconcile.
+const idleExpungeDebounce = 1 * time.Second
+
+// ownFlagEchoSuppress is how long after Aerion writes a flag change we treat an
+// incoming IDLE flag notification as the echo of our own change (and ignore it),
+// so reading mail in Aerion doesn't trigger a self-inflicted re-sync.
+const ownFlagEchoSuppress = 5 * time.Second
+
+// noteOwnFlagChange records that Aerion just STOREd a flag change for an account.
+func (a *App) noteOwnFlagChange(accountID string) {
+	a.ownFlagMu.Lock()
+	a.ownFlagChangeAt[accountID] = time.Now()
+	a.ownFlagMu.Unlock()
+}
+
+// recentOwnFlagChange reports whether Aerion wrote a flag change for the account
+// within the suppression window — used to skip the IDLE flag echo of our own change.
+func (a *App) recentOwnFlagChange(accountID string) bool {
+	a.ownFlagMu.Lock()
+	defer a.ownFlagMu.Unlock()
+	t, ok := a.ownFlagChangeAt[accountID]
+	return ok && time.Since(t) < ownFlagEchoSuppress
+}
+
+// handleIdleFlagsChanged reconciles the inbox after a flag change on the server
+// (another client marked read/unread/starred) and refreshes the message list +
+// sidebar badge. Lighter than handleIdleNewMail — flags only via the fast
+// CONDSTORE incremental path (SyncFolderFlags), no body/header fetch. INBOX only.
+func (a *App) handleIdleFlagsChanged(accountID string) {
+	a.reconcileInboxFlags(accountID, 0)
+}
+
+// When a full sync is mid-flight we re-arm one short retry instead of dropping
+// the flag event — if that sync already passed its flag step, our change would
+// otherwise wait for the next scheduled poll.
+const (
+	idleFlagBusyRetryDelay = 5 * time.Second
+	idleFlagBusyMaxRetries = 1
+)
+
+func (a *App) reconcileInboxFlags(accountID string, attempt int) {
+	defer recoverPanic("app.idle", "handle IDLE flags changed")
+	log := logging.WithComponent("app.idle")
+
+	inbox, _ := a.folderStore.GetByType(accountID, folder.TypeInbox)
+	if inbox == nil {
+		return
+	}
+	folderID := inbox.ID
+
+	// If a full sync is already running for the inbox it reconciles flags itself,
+	// but it may have already passed its flag step — so re-arm one short retry
+	// rather than dropping the event.
+	syncKey := accountID + ":" + folderID
+	a.syncMu.Lock()
+	_, busy := a.syncContexts[syncKey]
+	a.syncMu.Unlock()
+	if busy {
+		if attempt >= idleFlagBusyMaxRetries {
+			log.Debug().Str("syncKey", syncKey).Msg("IDLE flag re-sync still busy after retry - deferring to scheduled sync")
+			return
+		}
+		log.Debug().Str("syncKey", syncKey).Int("attempt", attempt).Msg("IDLE flag re-sync busy - retrying shortly")
+		time.AfterFunc(idleFlagBusyRetryDelay, func() {
+			a.reconcileInboxFlags(accountID, attempt+1)
+		})
+		return
+	}
+
+	log.Debug().Str("accountID", accountID).Msg("Flags changed via IDLE, reconciling inbox flags (fast path)")
+	ctx, cancel := context.WithTimeout(a.ctx, 2*time.Minute)
+	defer cancel()
+	syncErr := a.syncEngine.SyncFolderFlags(ctx, accountID, folderID)
+
+	// Always emit folder:synced: SyncFolderFlags emits the progress that drives
+	// the sidebar indicator, so we emit the matching completion (clears the bar)
+	// and reload the message list with the updated flags.
+	wailsRuntime.EventsEmit(a.ctx, "folder:synced", map[string]interface{}{
+		"accountId": accountID,
+		"folderId":  folderID,
+	})
+
+	if syncErr != nil {
+		log.Warn().Err(syncErr).Str("accountID", accountID).Msg("IDLE flag re-sync failed")
+		return
+	}
+
+	// Update the sidebar unread badge.
+	if updated, ferr := a.folderStore.Get(folderID); ferr == nil && updated != nil {
+		wailsRuntime.EventsEmit(a.ctx, "folders:countsChanged", map[string]int{
+			folderID: updated.UnreadCount,
+		})
+	}
+}
+
+// handleIdleExpunge reconciles the inbox after a message was expunged on the
+// server (a delete/move on another client). Needed for RFC-strict servers like
+// Dovecot that signal deletes via EXPUNGE only, with no EXISTS to trip the
+// new-mail path. Reuses the lightweight IDLE inbox sync — its UID diff removes
+// the deleted rows while the flag work stays the incremental CHANGEDSINCE path.
+// INBOX only.
+func (a *App) handleIdleExpunge(accountID string) {
+	defer recoverPanic("app.idle", "handle IDLE expunge")
+	log := logging.WithComponent("app.idle")
+
+	inbox, _ := a.folderStore.GetByType(accountID, folder.TypeInbox)
+	if inbox == nil {
+		return
+	}
+	folderID := inbox.ID
+
+	// If a sync is already running for the inbox, its UID diff will remove the
+	// deleted rows — skip (the scheduled sync is the backstop otherwise).
+	syncKey := accountID + ":" + folderID
+	a.syncMu.Lock()
+	_, busy := a.syncContexts[syncKey]
+	a.syncMu.Unlock()
+	if busy {
+		log.Debug().Str("syncKey", syncKey).Msg("Skipping IDLE expunge reconcile - sync already in progress")
+		return
+	}
+
+	log.Debug().Str("accountID", accountID).Msg("Messages expunged via IDLE, reconciling inbox deletions (lightweight)")
+	_, syncErr := a.syncScheduler.SyncAccountInboxBlocking(accountID)
+
+	// Always emit folder:synced: the sync emits progress that drives the sidebar
+	// indicator, so we emit the matching completion (clears the bar) and reload
+	// the message list with any deleted rows removed.
+	wailsRuntime.EventsEmit(a.ctx, "folder:synced", map[string]interface{}{
+		"accountId": accountID,
+		"folderId":  folderID,
+	})
+
+	if syncErr != nil {
+		log.Warn().Err(syncErr).Str("accountID", accountID).Msg("IDLE expunge reconcile failed")
+		return
+	}
+
+	// Update the sidebar unread badge.
+	if updated, ferr := a.folderStore.Get(folderID); ferr == nil && updated != nil {
+		wailsRuntime.EventsEmit(a.ctx, "folders:countsChanged", map[string]int{
+			folderID: updated.UnreadCount,
+		})
 	}
 }
 

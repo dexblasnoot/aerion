@@ -275,6 +275,9 @@ func (a *App) syncFlagsToIMAP(messages []*message.Message, folderID, flagType st
 			return fmt.Errorf("failed to select mailbox: %w", err)
 		}
 
+		// Stamp before the STORE so the server's IDLE echo of this change is
+		// recognized as ours and doesn't trigger a self-inflicted re-sync.
+		a.noteOwnFlagChange(messages[0].AccountID)
 		if flagValue {
 			return conn.AddMessageFlags(uids, []goImap.Flag{flag})
 		}

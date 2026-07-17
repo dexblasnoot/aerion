@@ -315,6 +315,12 @@ type App struct {
 	wakeSyncing     bool                          // guards syncAfterWake against concurrent calls
 	syncMu          goSync.Mutex                  // protects sync maps
 
+	// Suppresses the IDLE echo of our own flag writes: when Aerion STOREs a flag
+	// change it stamps the account here, so the incoming IDLE FETCH echo of that
+	// same change doesn't trigger a re-sync (only other clients' changes do).
+	ownFlagMu       goSync.Mutex
+	ownFlagChangeAt map[string]time.Time // accountID -> last own flag STORE time
+
 	// Draft IMAP sync goroutine tracking — cancel in-flight syncDraftToIMAP
 	draftSyncContexts map[string]context.CancelFunc // keyed by draft ID
 	draftSyncDone     map[string]chan struct{}       // closed when goroutine exits
@@ -747,6 +753,7 @@ func (a *App) Startup(ctx context.Context) {
 	// Initialize sync context tracking for cancel-and-restart
 	a.syncContexts = make(map[string]context.CancelFunc)
 	a.syncLastRequest = make(map[string]time.Time)
+	a.ownFlagChangeAt = make(map[string]time.Time)
 	a.draftSyncContexts = make(map[string]context.CancelFunc)
 	a.draftSyncDone = make(map[string]chan struct{})
 

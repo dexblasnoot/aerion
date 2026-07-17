@@ -74,6 +74,16 @@ func (a *App) SetAccentBarUnread(enabled bool) error {
 	return a.settingsStore.SetAccentBarUnread(enabled)
 }
 
+// GetShowMessageListProfilePics returns whether contact profile pictures are shown in the message list
+func (a *App) GetShowMessageListProfilePics() (bool, error) {
+	return a.settingsStore.GetShowMessageListProfilePics()
+}
+
+// SetShowMessageListProfilePics enables or disables contact profile pictures in the message list
+func (a *App) SetShowMessageListProfilePics(enabled bool) error {
+	return a.settingsStore.SetShowMessageListProfilePics(enabled)
+}
+
 // GetShowMessageListCircles returns whether colored sender circles are shown in the message list
 func (a *App) GetShowMessageListCircles() (bool, error) {
 	return a.settingsStore.GetShowMessageListCircles()
@@ -224,6 +234,42 @@ func (a *App) SetAutostart(enabled bool) error {
 		return a.autostartMgr.Enable()
 	}
 	return a.autostartMgr.Disable()
+}
+
+// GetSpellcheckEnabled returns whether composer spellcheck is on (defaults on)
+func (a *App) GetSpellcheckEnabled() (bool, error) {
+	return a.settingsStore.GetSpellcheckEnabled()
+}
+
+// SetSpellcheckEnabled sets the composer spellcheck master toggle
+func (a *App) SetSpellcheckEnabled(enabled bool) error {
+	return a.settingsStore.SetSpellcheckEnabled(enabled)
+}
+
+// GetSpellcheckLanguages returns the enabled dictionary codes (empty = frontend
+// falls back to the UI language + English)
+func (a *App) GetSpellcheckLanguages() ([]string, error) {
+	return a.settingsStore.GetSpellcheckLanguages()
+}
+
+// SetSpellcheckLanguages sets the enabled dictionary codes
+func (a *App) SetSpellcheckLanguages(langs []string) error {
+	return a.settingsStore.SetSpellcheckLanguages(langs)
+}
+
+// GetSpellcheckCustomWords returns the user-added dictionary words
+func (a *App) GetSpellcheckCustomWords() ([]string, error) {
+	return a.settingsStore.GetSpellcheckCustomWords()
+}
+
+// AddSpellcheckCustomWord appends a word to the user dictionary
+func (a *App) AddSpellcheckCustomWord(word string) error {
+	return a.settingsStore.AddSpellcheckCustomWord(word)
+}
+
+// RemoveSpellcheckCustomWord removes a word from the user dictionary
+func (a *App) RemoveSpellcheckCustomWord(word string) error {
+	return a.settingsStore.RemoveSpellcheckCustomWord(word)
 }
 
 // GetLanguage returns the saved language preference (locale code)

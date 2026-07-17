@@ -281,3 +281,12 @@ mark {
   background: rgba(0, 0, 0, 0.4);
   pointer-events: auto;
 }
+
+/* Spellcheck: misspelled-word underline in the composer body (ProseMirror
+   inline decoration from src/lib/spellcheck). Global because it targets nodes
+   rendered inside the editor's contenteditable. */
+.spellcheck-error {
+  text-decoration: underline wavy #ef4444;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 2px;
+}

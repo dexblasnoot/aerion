@@ -85,16 +85,34 @@ func nextModSeq(flagSyncOK bool, mailboxModSeq, prevModSeq uint64) uint64 {
 	return mailboxModSeq
 }
 
-// runFlagSync orchestrates one cycle's flag sync: routes through the
-// CONDSTORE incremental path when shouldUseCondStore returns true, else
-// falls through to the existing full FETCH (FLAGS). If the CONDSTORE
-// path returns an error, falls back to the full path on the same cycle so
-// no flag updates are missed.
+const (
+	// Below this many existing messages, a full FLAGS reconciliation runs every
+	// sync — cheap, and correct regardless of a server's (possibly broken)
+	// CONDSTORE. This is what fixes multi-client read/unread for iCloud, Yahoo,
+	// Exchange etc. whose CHANGEDSINCE can't be trusted.
+	flagFullReconcileThreshold = 2000
+	// At/above the threshold, the CONDSTORE fast-path avoids an O(all-messages)
+	// fetch every cycle — but we still force a FULL sweep every N cycles so any
+	// gap left by a broken/partial CONDSTORE self-heals.
+	flagFullSweepEvery = 10
+)
+
+// runFlagSync orchestrates one cycle's flag sync. Full reconciliation
+// (syncMessageFlags over every existing UID) is the AUTHORITATIVE path and runs
+// every sync for normal-sized mailboxes, so a provider whose CONDSTORE is
+// broken/absent can never cause a permanent miss. The CONDSTORE incremental
+// path is used only as a fast-path for large mailboxes, and even then a full
+// sweep is forced every flagFullSweepEvery cycles.
 //
-// Returns flagSyncOK — true when the cycle's flag state can be trusted
-// (and therefore HighestModSeq may advance via nextModSeq); false when both
-// paths failed and the persisted modseq must be pinned to its previous
-// value so the next cycle re-checks the missed window.
+// Returns flagSyncOK — true when the cycle's flag state can be trusted (so
+// HighestModSeq may advance via nextModSeq); false when the flag sync failed
+// and the persisted modseq must be pinned so the next cycle re-checks.
+//
+// preferIncremental forces the CONDSTORE fast-path whenever CONDSTORE is usable,
+// bypassing the size threshold and periodic sweep. It's set by the IDLE
+// flag-change path (SyncFolderFlags), which needs a near-instant reconcile and
+// relies on the scheduled full reconciliation as the correctness net. The
+// scheduled path passes false, keeping its full-for-small-mailboxes behavior.
 //
 // Guard-clause style throughout — no if/else, per project convention.
 func (e *Engine) runFlagSync(
@@ -105,30 +123,42 @@ func (e *Engine) runFlagSync(
 	uidValidityChanged bool,
 	prevModSeq, mailboxModSeq uint64,
 	supportsCondStore bool,
+	preferIncremental bool,
 ) bool {
-	// Path 1: server lacks CONDSTORE or we don't have a baseline yet → full.
-	if !shouldUseCondStore(uidValidityChanged, prevModSeq, mailboxModSeq, supportsCondStore) {
-		e.log.Debug().Int("count", len(existingUIDs)).Msg("Syncing flags for existing messages (full)")
+	// CONDSTORE incremental: forced for the IDLE fast path (preferIncremental),
+	// otherwise only for large mailboxes on non-sweep cycles. The short-circuit
+	// keeps dueForFullFlagSweep (which mutates a counter) from running on the
+	// IDLE path.
+	useIncremental := shouldUseCondStore(uidValidityChanged, prevModSeq, mailboxModSeq, supportsCondStore) &&
+		(preferIncremental ||
+			(len(existingUIDs) >= flagFullReconcileThreshold && !e.dueForFullFlagSweep(folderID)))
+
+	if !useIncremental {
+		e.log.Debug().
+			Str("folder", folderID).
+			Int("existing", len(existingUIDs)).
+			Bool("condstore", supportsCondStore).
+			Msg("Flag sync: full reconciliation")
 		if err := e.syncMessageFlags(ctx, rawClient, folderID, existingUIDs); err != nil {
-			e.log.Warn().Err(err).Msg("Failed to sync message flags")
+			e.log.Warn().Err(err).Msg("Full flag reconciliation failed")
 			return false
 		}
 		return true
 	}
 
-	// Path 2: CONDSTORE incremental. Tiny payload, fast path.
+	// Fast-path: CONDSTORE incremental. Tiny payload.
 	changed, err := e.syncMessageFlagsChangedSince(ctx, rawClient, folderID, prevModSeq)
 	if err == nil {
 		e.log.Debug().
+			Str("folder", folderID).
 			Int("changed", changed).
 			Int("existing", len(existingUIDs)).
 			Uint64("sinceModSeq", prevModSeq).
-			Msg("Incremental flag sync (CONDSTORE)")
+			Msg("Flag sync: incremental (CONDSTORE)")
 		return true
 	}
 
-	// Path 3: CONDSTORE errored. Fall back to the full sync on this cycle
-	// so no flag updates are missed — and pin modseq on fallback failure.
+	// CONDSTORE errored → full reconciliation this cycle; pin modseq on failure.
 	e.log.Warn().Err(err).Uint64("sinceModSeq", prevModSeq).
 		Msg("Incremental (CONDSTORE) flag sync failed, falling back to full")
 	if ferr := e.syncMessageFlags(ctx, rawClient, folderID, existingUIDs); ferr != nil {
@@ -136,6 +166,17 @@ func (e *Engine) runFlagSync(
 		return false
 	}
 	return true
+}
+
+// dueForFullFlagSweep increments a per-folder counter and returns true every
+// flagFullSweepEvery calls, forcing a periodic full flag reconciliation on
+// large mailboxes even while the CONDSTORE fast-path is available — so a
+// broken/partial CONDSTORE self-heals over time.
+func (e *Engine) dueForFullFlagSweep(folderID string) bool {
+	e.flagSweepMu.Lock()
+	defer e.flagSweepMu.Unlock()
+	e.flagSweepCounter[folderID]++
+	return e.flagSweepCounter[folderID]%flagFullSweepEvery == 0
 }
 
 // syncMessageFlagsChangedSince issues a single FETCH 1:* (FLAGS) (CHANGEDSINCE

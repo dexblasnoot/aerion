@@ -255,10 +255,28 @@ func (ic *IdleConnection) ensureConnected(ctx context.Context) error {
 					})
 				}
 			},
+			// EXPUNGE = a message was removed on the server. The app debounces this
+			// into a lightweight deletion reconcile (see handleIdleExpunge in
+			// app/background.go) — required for RFC-strict servers like Dovecot that
+			// signal deletes with EXPUNGE only and no follow-up EXISTS.
 			Expunge: func(seqNum uint32) {
 				ic.log.Debug().Uint32("seqNum", seqNum).Msg("Message expunged")
 				ic.sendEvent(MailEvent{
 					Type:      EventExpunge,
+					AccountID: ic.accountID,
+					Folder:    ic.folder,
+					SeqNum:    seqNum,
+				})
+			},
+			// Unilateral FETCH = a flag changed on the server (another client
+			// marked read/unread/starred). Emit EventFlagsChanged so the app can
+			// re-sync flags (debounced). We must consume the streamed data.
+			Fetch: func(msg *imapclient.FetchMessageData) {
+				seqNum := msg.SeqNum
+				_, _ = msg.Collect()
+				ic.log.Debug().Uint32("seqNum", seqNum).Msg("Flags changed notification (FETCH)")
+				ic.sendEvent(MailEvent{
+					Type:      EventFlagsChanged,
 					AccountID: ic.accountID,
 					Folder:    ic.folder,
 					SeqNum:    seqNum,

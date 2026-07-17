@@ -48,13 +48,14 @@
       </div>
 
       <div class="space-y-4 max-h-[60vh] overflow-y-auto text-sm">
-        <p>🚀 Welcome to Aerion v0.3.1!</p>
+        <p>🚀 Welcome to Aerion v0.3.2!</p>
 
         <p>Here are the highlights of this release:</p>
 
         <ul class="list-disc pl-6 space-y-1">
-          <li>🛡️ Custom oAuth2 support for IMAP, SMTP, CarDAV, and CalDAV - (Designed for & Tested with <a href="https://stalw.art" class="text-primary hover:underline" onclick={(e) => { e.preventDefault(); openExternal('https://stalw.art') }}>Stalwart</a>)</li>
-          <li>📬 Composer body is now always white even when using dark theme. To change that, there's a "Dark composer body" toggle in the General tab of the settings dialog to enable a dark background for the composer body when using dark themes.</li>
+          <li>✏️ Spellcheck functionality in the composer has been added</li>
+          <li>📩 Improved sync and pushed changes (IDLE)</li>
+          <li>📑 Improved profile pic support - Requires force re-sync of contacts</li>
           <li>🐛 Bug fixes and improvements</li>
         </ul>
 

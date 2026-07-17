@@ -1,4 +1,17 @@
 {
+  "spellcheck": {
+    "title": "Vérification orthographique",
+    "enable": "Vérifier l'orthographe",
+    "enableHelp": "Souligner les mots mal orthographiés lors de la rédaction.",
+    "languages": "Dictionnaires",
+    "languagesHelp": "Un mot est accepté s'il est valide dans l'une des langues activées.",
+    "addToDictionary": "Ajouter au dictionnaire",
+    "ignore": "Ignorer",
+    "noSuggestions": "Aucune suggestion",
+    "addedWords": "Mots ajoutés",
+    "noAddedWords": "Aucun mot ajouté pour l'instant.",
+    "removeWord": "Supprimer le mot"
+  },
   "common": {
     "save": "Enregistrer",
     "cancel": "Annuler",
@@ -316,7 +329,7 @@
     "linkAccountOrSignIn": "Veuillez lier un compte ou vous connecter",
     "accountSaved": "Paramètres du compte enregistrés",
     "failedToSaveAccount": "Échec de l'enregistrement du compte.",
-    "accountEmailExists": "Un compte avec cette adresse e-mail existe déjà.",
+    "accountEmailExists": "Un compte avec cette adresse e-mail existe déjà et ne peut donc pas être ajouté.",
     "reauthorized": "{name} ré-autorisé avec succès ! Synchronisation...",
     "syncCompleted": "Synchronisation de {name} terminée",
     "failedToReauthorize": "Échec de la ré-autorisation du compte.",

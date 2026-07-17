@@ -266,7 +266,7 @@ func (s *Scheduler) syncAccountInbox(acc *account.Account) {
 	previousCount := inbox.TotalCount
 
 	// Sync messages (use account's sync period setting)
-	if err := s.engine.SyncMessages(ctx, acc.ID, inbox.ID, acc.SyncPeriodDays); err != nil {
+	if err := s.engine.SyncMessages(ctx, acc.ID, inbox.ID, acc.SyncPeriodDays, false); err != nil {
 		if ctx.Err() != nil {
 			s.log.Info().Str("account", acc.Name).Msg("Sync cancelled during message sync")
 			// Notify completion even on cancel so frontend clears progress
@@ -354,7 +354,7 @@ func (s *Scheduler) syncAdditionalFolders(ctx context.Context, acc *account.Acco
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			if syncErr := s.engine.SyncMessages(ctx, acc.ID, f.ID, acc.SyncPeriodDays); syncErr != nil {
+			if syncErr := s.engine.SyncMessages(ctx, acc.ID, f.ID, acc.SyncPeriodDays, false); syncErr != nil {
 				if ctx.Err() == nil {
 					s.log.Warn().Err(syncErr).Str("folder", f.Path).Msg("Failed to sync additional folder")
 				}
@@ -488,7 +488,10 @@ func (s *Scheduler) SyncAccountInboxBlocking(accountID string) (*NewMailInfo, er
 	previousCount := inbox.TotalCount
 
 	// Sync messages (use account's sync period setting)
-	if err := s.engine.SyncMessages(ctx, acc.ID, inbox.ID, acc.SyncPeriodDays); err != nil {
+	// IDLE-triggered inbox sync (new mail + cross-client deletions) — use the
+	// lightweight incremental flag path; the scheduled sync above stays the
+	// authoritative full reconciliation.
+	if err := s.engine.SyncMessages(ctx, acc.ID, inbox.ID, acc.SyncPeriodDays, true); err != nil {
 		if ctx.Err() != nil {
 			s.log.Info().Str("account", acc.Name).Msg("Sync cancelled during message sync")
 			return nil, ctx.Err()

@@ -25,7 +25,12 @@ import (
 // on the same folder, and proper event emission (sync:progress, folder:synced).
 // Calling SyncMessages directly from app/ risks race conditions when multiple
 // operations trigger syncs on the same folder concurrently.
-func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, syncPeriodDays int) error {
+// preferIncremental routes flag reconciliation down the fast CONDSTORE
+// CHANGEDSINCE path (skipping the O(window) full re-fetch). Set true only for the
+// IDLE-triggered inbox sync (new-mail + cross-client deletions), which needs to be
+// light; the scheduled sync passes false so it stays the authoritative full
+// reconciliation. Deletion detection (the UID diff below) is unaffected either way.
+func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, syncPeriodDays int, preferIncremental bool) error {
 	// Check context at start
 	if ctx.Err() != nil {
 		return ctx.Err()
@@ -56,17 +61,22 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	// capture the original pointer and leak the replacement connection.
 	defer func() { e.pool.Release(conn) }()
 
+	// Server-authoritative unseen count. Issue STATUS on this connection BEFORE
+	// selecting the mailbox — STATUS on the currently-selected mailbox is
+	// RFC 3501 §6.3.10-undefined and some servers return bogus values there (the
+	// sidebar "random big number"). We do NOT grab a second pooled connection
+	// here: doing so under a bounded pool can deadlock concurrent folder syncs.
+	// The value is also sanity-checked below (unseen can never exceed total).
+	mailboxStatus, statusErr := conn.Client().GetMailboxStatus(ctx, f.Path)
+	if statusErr != nil {
+		e.log.Warn().Err(statusErr).Str("folder", f.Path).Msg("Failed to get mailbox status for unseen count")
+		mailboxStatus = nil
+	}
+
 	// Select the mailbox
 	mailbox, err := conn.Client().SelectMailbox(ctx, f.Path)
 	if err != nil {
 		return fmt.Errorf("failed to select mailbox: %w", err)
-	}
-
-	// Get mailbox status for accurate unseen count (SELECT doesn't return this)
-	mailboxStatus, err := conn.Client().GetMailboxStatus(ctx, f.Path)
-	if err != nil {
-		e.log.Warn().Err(err).Str("folder", f.Path).Msg("Failed to get mailbox status for unseen count")
-		// Continue with sync, will fall back to local count
 	}
 
 	// CONDSTORE baseline for this cycle's flag-sync decision. Captured BEFORE
@@ -250,6 +260,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			prevModSeq,
 			mailbox.HighestModSeq,
 			conn.Client().SupportsCondStore(),
+			preferIncremental,
 		)
 	}
 
@@ -362,14 +373,17 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	f.TotalCount = int(mailbox.Messages)
 	f.LastSync = &now
 
-	// Use IMAP server's authoritative unread count if available
-	if mailboxStatus != nil {
+	// Prefer the server's authoritative unread count, but only when it's
+	// plausible — unseen can never exceed the total message count. A bogus value
+	// (the sidebar "random big number", from an undefined STATUS on a selected
+	// mailbox) or a missing STATUS falls back to the local unread count.
+	serverUnseenOK := mailboxStatus != nil && int(mailboxStatus.Unseen) <= f.TotalCount
+	if serverUnseenOK {
 		f.UnreadCount = int(mailboxStatus.Unseen)
-	} else {
-		// Fall back to counting local messages if status call failed
-		unreadCount, err := e.messageStore.CountUnreadByFolder(folderID)
-		if err == nil {
-			f.UnreadCount = unreadCount
+	}
+	if !serverUnseenOK {
+		if localCount, cErr := e.messageStore.CountUnreadByFolder(folderID); cErr == nil {
+			f.UnreadCount = localCount
 		}
 	}
 
@@ -383,6 +397,103 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 		Int("deleted", len(deletedUIDs)).
 		Msg("Message sync complete (headers)")
 
+	return nil
+}
+
+// SyncFolderFlags does a lightweight, flags-only reconciliation of a folder for
+// the IDLE fast path. It reconciles flag changes (CONDSTORE incremental when the
+// server supports it, else a full flag fetch) and refreshes the unread count —
+// WITHOUT the remote UID search / new-mail / header fetch that SyncMessages does.
+// This keeps a cross-client read/unread change near-instant. The scheduled
+// SyncMessages remains the authoritative full reconciliation, and is the only
+// path that detects server-side deletions — so this method deliberately skips
+// them (an IDLE FETCH never implies a deletion).
+//
+// Returns nil (no-op) on a UIDValidity reset: the scheduled full sync owns
+// mailbox-recreation handling.
+func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	f, err := e.folderStore.Get(folderID)
+	if err != nil {
+		return fmt.Errorf("failed to get folder: %w", err)
+	}
+	if f == nil {
+		return fmt.Errorf("folder not found: %s", folderID)
+	}
+
+	conn, err := e.pool.GetConnection(ctx, accountID)
+	if err != nil {
+		return fmt.Errorf("failed to get connection: %w", err)
+	}
+	defer func() { e.pool.Release(conn) }()
+
+	// Server-authoritative unseen count — STATUS before SELECT, same rationale as
+	// SyncMessages (STATUS on the selected mailbox is RFC 3501 §6.3.10-undefined).
+	mailboxStatus, statusErr := conn.Client().GetMailboxStatus(ctx, f.Path)
+	if statusErr != nil {
+		e.log.Warn().Err(statusErr).Str("folder", f.Path).Msg("Flag-only sync: failed to get mailbox status")
+		mailboxStatus = nil
+	}
+
+	mailbox, err := conn.Client().SelectMailbox(ctx, f.Path)
+	if err != nil {
+		return fmt.Errorf("failed to select mailbox: %w", err)
+	}
+
+	// UIDValidity reset ⇒ mailbox recreated. Defer to the scheduled full sync
+	// rather than reconcile flags against a stale UID universe.
+	if f.UIDValidity != 0 && f.UIDValidity != mailbox.UIDValidity {
+		e.log.Info().Str("folder", f.Path).Msg("Flag-only sync: UIDValidity changed, deferring to full sync")
+		return nil
+	}
+
+	// Brief progress so the sync stays visible and the indicator clears cleanly.
+	e.emitProgress(accountID, folderID, 0, 0, "messages")
+
+	localUIDs, err := e.messageStore.GetAllUIDs(folderID)
+	if err != nil {
+		return fmt.Errorf("failed to get local UIDs: %w", err)
+	}
+
+	prevModSeq := f.HighestModSeq
+	flagSyncOK := true
+	if len(localUIDs) > 0 {
+		flagSyncOK = e.runFlagSync(
+			ctx,
+			conn.Client().RawClient(),
+			folderID,
+			localUIDs,
+			false, // uidValidityChanged: handled above
+			prevModSeq,
+			mailbox.HighestModSeq,
+			conn.Client().SupportsCondStore(),
+			true, // preferIncremental: IDLE fast path
+		)
+	}
+
+	// Advance the persisted modseq only when the flag sync succeeded.
+	f.HighestModSeq = nextModSeq(flagSyncOK, mailbox.HighestModSeq, prevModSeq)
+
+	// Prefer the server's unseen count when plausible (unseen ≤ total), else the
+	// local count — same sanity guard as SyncMessages against a bogus STATUS.
+	serverUnseenOK := mailboxStatus != nil && int(mailboxStatus.Unseen) <= f.TotalCount
+	if serverUnseenOK {
+		f.UnreadCount = int(mailboxStatus.Unseen)
+	}
+	if !serverUnseenOK {
+		if localCount, cErr := e.messageStore.CountUnreadByFolder(folderID); cErr == nil {
+			f.UnreadCount = localCount
+		}
+	}
+
+	if err := e.folderStore.Update(f); err != nil {
+		return fmt.Errorf("failed to update folder: %w", err)
+	}
+
+	e.emitProgress(accountID, folderID, 1, 1, "headers")
 	return nil
 }
 
@@ -413,8 +524,11 @@ func (e *Engine) syncMessageFlags(ctx context.Context, client *imapclient.Client
 			uidSet.AddNum(imap.UID(uid))
 		}
 
-		// Fetch only flags for these UIDs
+		// Fetch flags for these UIDs. UID:true is explicit (belt-and-suspenders;
+		// a UID FETCH returns UID implicitly per RFC, but some servers/libs are
+		// happier when it's requested).
 		fetchOptions := &imap.FetchOptions{
+			UID:   true,
 			Flags: true,
 		}
 

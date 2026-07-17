@@ -3,6 +3,7 @@
   import Icon from '@iconify/svelte'
   import type { Editor } from '@tiptap/core'
   import { createComposerEditor } from './composerEditor'
+  import PlainTextEditor from './PlainTextEditor.svelte'
   // @ts-ignore - Wails generated imports
   import { smtp, account, app } from '../../../../wailsjs/go/models'
   // @ts-ignore - Wails runtime for events
@@ -181,7 +182,7 @@
   // Plain text mode toggle (default from user setting, can be toggled per-message)
   let isPlainTextMode = $state(getComposerFormat() === 'plain')
   let plainTextContent = $state('')  // Store plain text when in plain text mode
-  let plainTextRef = $state<HTMLTextAreaElement | null>(null)  // textarea element (plain text mode)
+  let plainTextRef = $state<{ focus: () => void } | null>(null)  // PlainTextEditor instance (plain text mode)
   let initialRichBody = ''  // original reply/forward rich body (images restored), for plain->rich reprocess
 
   // Component refs
@@ -814,11 +815,10 @@
       switch (mode) {
         case 'reply':
         case 'reply-all':
-          // Plain text mode shows a textarea (the editor is hidden), so focus
-          // that — cursor at the top, above the quoted original.
+          // Plain text mode shows its own editor (the rich editor is hidden),
+          // so focus that — cursor at the top, above the quoted original.
           if (isPlainTextMode) {
             plainTextRef?.focus()
-            plainTextRef?.setSelectionRange(0, 0)
             break
           }
           editor?.commands.focus('start')
@@ -2036,13 +2036,14 @@
            {#if}/{:else}. Unmounting the editor <div> orphaned the TipTap
            instance, so a later switch back to rich text wrote into a dead
            editor and the body vanished. -->
-      <textarea
-        bind:this={plainTextRef}
-        bind:value={plainTextContent}
-        placeholder={$_('composer.writePlaceholder')}
-        class="w-full h-full p-3 bg-transparent resize-none focus:outline-none font-mono text-sm {isPlainTextMode ? '' : 'hidden'}"
-        oninput={scheduleDraftSave}
-      ></textarea>
+      <div class="h-full {isPlainTextMode ? '' : 'hidden'}">
+        <PlainTextEditor
+          bind:this={plainTextRef}
+          bind:value={plainTextContent}
+          placeholder={$_('composer.writePlaceholder')}
+          onInput={scheduleDraftSave}
+        />
+      </div>
       <div bind:this={editorElement} class="h-full {isPlainTextMode ? 'hidden' : ''}"></div>
     </div>
 

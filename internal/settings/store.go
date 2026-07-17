@@ -3,6 +3,7 @@ package settings
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -14,29 +15,33 @@ import (
 
 // Known setting keys
 const (
-	KeyReadReceiptResponsePolicy = "read_receipt_response_policy"
-	KeyMarkAsReadDelay           = "mark_as_read_delay"
-	KeyMessageListDensity        = "message_list_density"
-	KeyMessageListSortOrder      = "message_list_sort_order"
-	KeyThemeMode                 = "theme_mode"
-	KeyShowTitleBar              = "show_title_bar"
-	KeyTermsAccepted             = "terms_accepted"
-	KeyRunBackground             = "run_background"
-	KeyStartHidden               = "start_hidden"
-	KeyAutostart                 = "autostart"
-	KeyLanguage                  = "language"
-	KeyComposerMode              = "composer_mode"
-	KeyMailtoMode                = "mailto_mode"
-	KeyComposerFormat            = "composer_format"
-	KeyNativeTitleBar            = "native_titlebar"
-	KeyAlwaysLoadImages          = "always_load_images"
-	KeyDarkMailContent           = "dark_mail_content"
-	KeyDarkComposerBody          = "dark_composer_body"
-	KeyAccentBarUnread           = "accent_bar_unread"
-	KeyShowMessageListCircles    = "show_message_list_circles"
-	KeyShowViewerCircles         = "show_viewer_circles"
-	KeyLastSeenVersion           = "last_seen_version"      // for "What's new in this version" launch dialog
-	KeyOAuthWarningDisabled      = "oauth_warning_disabled" // user toggled "Don't show again" on the missing-OAuth-creds launch warning
+	KeyReadReceiptResponsePolicy  = "read_receipt_response_policy"
+	KeyMarkAsReadDelay            = "mark_as_read_delay"
+	KeyMessageListDensity         = "message_list_density"
+	KeyMessageListSortOrder       = "message_list_sort_order"
+	KeyThemeMode                  = "theme_mode"
+	KeyShowTitleBar               = "show_title_bar"
+	KeyTermsAccepted              = "terms_accepted"
+	KeyRunBackground              = "run_background"
+	KeyStartHidden                = "start_hidden"
+	KeyAutostart                  = "autostart"
+	KeyLanguage                   = "language"
+	KeyComposerMode               = "composer_mode"
+	KeyMailtoMode                 = "mailto_mode"
+	KeyComposerFormat             = "composer_format"
+	KeyNativeTitleBar             = "native_titlebar"
+	KeyAlwaysLoadImages           = "always_load_images"
+	KeyDarkMailContent            = "dark_mail_content"
+	KeyDarkComposerBody           = "dark_composer_body"
+	KeyAccentBarUnread            = "accent_bar_unread"
+	KeyShowMessageListCircles     = "show_message_list_circles"
+	KeyShowMessageListProfilePics = "show_message_list_profile_pics" // render contact photos in the message-list avatar slot (default off)
+	KeyShowViewerCircles          = "show_viewer_circles"
+	KeyLastSeenVersion            = "last_seen_version"       // for "What's new in this version" launch dialog
+	KeyOAuthWarningDisabled       = "oauth_warning_disabled"  // user toggled "Don't show again" on the missing-OAuth-creds launch warning
+	KeySpellcheckEnabled          = "spellcheck_enabled"      // composer spellcheck master toggle (defaults on)
+	KeySpellcheckLanguages        = "spellcheck_languages"    // JSON array of enabled dictionary codes, e.g. ["en","de"]
+	KeySpellcheckCustomWords      = "spellcheck_custom_words" // JSON array of user-added dictionary words
 )
 
 // Extension enable/disable keys. Format: extension_<name>_enabled.
@@ -78,35 +83,35 @@ const DefaultMessageListSortOrder = SortOrderNewest
 
 // Theme mode values
 const (
-	ThemeModeSystem      = "system"
-	ThemeModeLight       = "light"        // Default light purple
-	ThemeModeLightBlue   = "light-blue"   // New
-	ThemeModeLightOrange   = "light-orange"   // New
-	ThemeModeLightBalanced = "light-balanced" // New
-	ThemeModeAdwaitaLight  = "adwaita-light"  // Adwaita Light
-	ThemeModeBreezeLight   = "breeze-light"   // Breeze Light
-	ThemeModeDark          = "dark"           // Default dark purple
-	ThemeModeDarkGray     = "dark-gray"     // New
-	ThemeModeDarkBalanced = "dark-balanced" // New
-	ThemeModeAdwaitaDark  = "adwaita-dark"  // Adwaita Dark
-	ThemeModeBreezeDark   = "breeze-dark"   // Breeze Dark
+	ThemeModeSystem              = "system"
+	ThemeModeLight               = "light"                // Default light purple
+	ThemeModeLightBlue           = "light-blue"           // New
+	ThemeModeLightOrange         = "light-orange"         // New
+	ThemeModeLightBalanced       = "light-balanced"       // New
+	ThemeModeAdwaitaLight        = "adwaita-light"        // Adwaita Light
+	ThemeModeBreezeLight         = "breeze-light"         // Breeze Light
+	ThemeModeDark                = "dark"                 // Default dark purple
+	ThemeModeDarkGray            = "dark-gray"            // New
+	ThemeModeDarkBalanced        = "dark-balanced"        // New
+	ThemeModeAdwaitaDark         = "adwaita-dark"         // Adwaita Dark
+	ThemeModeBreezeDark          = "breeze-dark"          // Breeze Dark
 	ThemeModeCatppuccinLatte     = "catppuccin-latte"     // Catppuccin Latte
 	ThemeModeCatppuccinFrappe    = "catppuccin-frappe"    // Catppuccin Frappé
 	ThemeModeCatppuccinMacchiato = "catppuccin-macchiato" // Catppuccin Macchiato
 	ThemeModeCatppuccinMocha     = "catppuccin-mocha"     // Catppuccin Mocha
-	ThemeModeDracula         = "dracula"          // Dracula
-	ThemeModeGithubLight     = "github-light"     // GitHub Light
-	ThemeModeGithubDark      = "github-dark"      // GitHub Dark
-	ThemeModeGithubSoftDark  = "github-soft-dark" // GitHub Soft Dark
-	ThemeModeTokyoNight      = "tokyo-night"      // Tokyo Night
-	ThemeModeNordLight       = "nord-light"       // Nord Light
-	ThemeModeNordDark        = "nord-dark"        // Nord Dark
-	ThemeModePopLight        = "pop-light"        // Pop! Light
-	ThemeModePopDark         = "pop-dark"         // Pop! Dark
-	ThemeModeYaruLight       = "yaru-light"       // Yaru Light
-	ThemeModeYaruDark        = "yaru-dark"        // Yaru Dark
-	ThemeModeVSCodeLight     = "vs-code-light"    // VS Code Light
-	ThemeModeVSCodeDark      = "vs-code-dark"     // VS Code Dark
+	ThemeModeDracula             = "dracula"              // Dracula
+	ThemeModeGithubLight         = "github-light"         // GitHub Light
+	ThemeModeGithubDark          = "github-dark"          // GitHub Dark
+	ThemeModeGithubSoftDark      = "github-soft-dark"     // GitHub Soft Dark
+	ThemeModeTokyoNight          = "tokyo-night"          // Tokyo Night
+	ThemeModeNordLight           = "nord-light"           // Nord Light
+	ThemeModeNordDark            = "nord-dark"            // Nord Dark
+	ThemeModePopLight            = "pop-light"            // Pop! Light
+	ThemeModePopDark             = "pop-dark"             // Pop! Dark
+	ThemeModeYaruLight           = "yaru-light"           // Yaru Light
+	ThemeModeYaruDark            = "yaru-dark"            // Yaru Dark
+	ThemeModeVSCodeLight         = "vs-code-light"        // VS Code Light
+	ThemeModeVSCodeDark          = "vs-code-dark"         // VS Code Dark
 )
 
 // DefaultThemeMode is the default theme mode
@@ -317,6 +322,26 @@ func (s *Store) SetShowMessageListCircles(enabled bool) error {
 	return s.Set(KeyShowMessageListCircles, v)
 }
 
+// GetShowMessageListProfilePics returns whether contact profile pictures are
+// shown in the message-list avatar slot (in place of the colored circle).
+// Default: false.
+func (s *Store) GetShowMessageListProfilePics() (bool, error) {
+	value, err := s.Get(KeyShowMessageListProfilePics)
+	if err != nil {
+		return false, err
+	}
+	return value == "true", nil
+}
+
+// SetShowMessageListProfilePics enables or disables contact profile pictures in the message list
+func (s *Store) SetShowMessageListProfilePics(enabled bool) error {
+	v := "false"
+	if enabled {
+		v = "true"
+	}
+	return s.Set(KeyShowMessageListProfilePics, v)
+}
+
 // GetShowViewerCircles returns whether colored sender circles
 // are shown in the conversation viewer. Default: true.
 func (s *Store) GetShowViewerCircles() (bool, error) {
@@ -512,6 +537,107 @@ func (s *Store) SetAutostart(enabled bool) error {
 		value = "true"
 	}
 	return s.Set(KeyAutostart, value)
+}
+
+// GetSpellcheckEnabled returns whether composer spellcheck is on. Defaults to
+// true (only an explicit "false" disables it) so it's on out of the box.
+func (s *Store) GetSpellcheckEnabled() (bool, error) {
+	value, err := s.Get(KeySpellcheckEnabled)
+	if err != nil {
+		return true, err
+	}
+	return value != "false", nil
+}
+
+// SetSpellcheckEnabled sets the composer spellcheck master toggle
+func (s *Store) SetSpellcheckEnabled(enabled bool) error {
+	value := "false"
+	if enabled {
+		value = "true"
+	}
+	return s.Set(KeySpellcheckEnabled, value)
+}
+
+// GetSpellcheckLanguages returns the enabled dictionary codes. Empty (unset)
+// lets the frontend fall back to the UI language + English.
+func (s *Store) GetSpellcheckLanguages() ([]string, error) {
+	value, err := s.Get(KeySpellcheckLanguages)
+	if err != nil {
+		return nil, err
+	}
+	if value == "" {
+		return []string{}, nil
+	}
+	var langs []string
+	if err := json.Unmarshal([]byte(value), &langs); err != nil {
+		return []string{}, nil // tolerate a corrupt value rather than fail settings load
+	}
+	return langs, nil
+}
+
+// SetSpellcheckLanguages stores the enabled dictionary codes as a JSON array
+func (s *Store) SetSpellcheckLanguages(langs []string) error {
+	if langs == nil {
+		langs = []string{}
+	}
+	data, err := json.Marshal(langs)
+	if err != nil {
+		return err
+	}
+	return s.Set(KeySpellcheckLanguages, string(data))
+}
+
+// GetSpellcheckCustomWords returns the user-added dictionary words
+func (s *Store) GetSpellcheckCustomWords() ([]string, error) {
+	value, err := s.Get(KeySpellcheckCustomWords)
+	if err != nil {
+		return nil, err
+	}
+	if value == "" {
+		return []string{}, nil
+	}
+	var words []string
+	if err := json.Unmarshal([]byte(value), &words); err != nil {
+		return []string{}, nil
+	}
+	return words, nil
+}
+
+// AddSpellcheckCustomWord appends a word to the user dictionary (no-op if already present)
+func (s *Store) AddSpellcheckCustomWord(word string) error {
+	words, err := s.GetSpellcheckCustomWords()
+	if err != nil {
+		return err
+	}
+	for _, w := range words {
+		if w == word {
+			return nil
+		}
+	}
+	data, err := json.Marshal(append(words, word))
+	if err != nil {
+		return err
+	}
+	return s.Set(KeySpellcheckCustomWords, string(data))
+}
+
+// RemoveSpellcheckCustomWord removes a word from the user dictionary (no-op if absent)
+func (s *Store) RemoveSpellcheckCustomWord(word string) error {
+	words, err := s.GetSpellcheckCustomWords()
+	if err != nil {
+		return err
+	}
+	kept := make([]string, 0, len(words))
+	for _, w := range words {
+		if w != word {
+			kept = append(kept, w)
+		}
+	}
+	data, err := json.Marshal(kept)
+	if err != nil {
+		return err
+	}
+	return s.Set(KeySpellcheckCustomWords, string(data))
 }
 
 // GetLanguage returns the saved language preference (locale code)

@@ -68,7 +68,7 @@ func (a *App) SyncFolder(accountID, folderID string) error {
 	}
 
 	// Use ctx (not a.ctx) for sync operations so they can be cancelled
-	err = a.syncEngine.SyncMessages(ctx, accountID, folderID, syncPeriodDays)
+	err = a.syncEngine.SyncMessages(ctx, accountID, folderID, syncPeriodDays, false)
 	if err != nil {
 		// Check if this was a cancellation
 		if ctx.Err() != nil {

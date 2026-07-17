@@ -4,6 +4,7 @@ package sync
 import (
 	"context"
 	"io"
+	gosync "sync"
 
 	gomessage "github.com/emersion/go-message"
 	"github.com/hkdb/aerion/internal/account"
@@ -91,6 +92,11 @@ type Engine struct {
 	progressCallback ProgressCallback
 	smimeVerifier    *smime.Verifier
 	pgpVerifier      *pgp.Verifier
+
+	// Per-folder counter driving the periodic full flag sweep for large
+	// mailboxes on the CONDSTORE fast-path (see runFlagSync / condstore.go).
+	flagSweepMu      gosync.Mutex
+	flagSweepCounter map[string]int
 }
 
 // NewEngine creates a new sync engine
@@ -101,9 +107,10 @@ func NewEngine(pool *imapPkg.Pool, accountStore *account.Store, folderStore *fol
 		folderStore:     folderStore,
 		messageStore:    messageStore,
 		attachmentStore: attachmentStore,
-		attachExtractor: email.NewAttachmentExtractor(),
-		sanitizer:       email.NewSanitizer(),
-		log:             logging.WithComponent("sync"),
+		attachExtractor:  email.NewAttachmentExtractor(),
+		sanitizer:        email.NewSanitizer(),
+		log:              logging.WithComponent("sync"),
+		flagSweepCounter: map[string]int{},
 	}
 }
 

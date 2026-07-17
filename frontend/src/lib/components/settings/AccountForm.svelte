@@ -645,9 +645,13 @@
       }
     } catch (err) {
       console.error('Account save failed:', err)
+      // All add paths (manual AddAccount, OAuth, custom OAuth) surface the store's
+      // ErrAccountExists ("account with this email already exists") on a duplicate
+      // email — show the specific message instead of the generic save failure.
+      const isDuplicate = String(err).toLowerCase().includes('already exists')
       testResult = {
         success: false,
-        message: $_('account.saveFailed'),
+        message: isDuplicate ? $_('toast.accountEmailExists') : $_('account.saveFailed'),
       }
     } finally {
       submitting = false

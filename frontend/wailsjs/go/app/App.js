@@ -30,6 +30,10 @@ export function AddPGPKeyServer(arg1) {
   return window['go']['app']['App']['AddPGPKeyServer'](arg1);
 }
 
+export function AddSpellcheckCustomWord(arg1) {
+  return window['go']['app']['App']['AddSpellcheckCustomWord'](arg1);
+}
+
 export function Archive(arg1) {
   return window['go']['app']['App']['Archive'](arg1);
 }
@@ -426,6 +430,10 @@ export function GetContact(arg1) {
   return window['go']['app']['App']['GetContact'](arg1);
 }
 
+export function GetContactPhotos(arg1) {
+  return window['go']['app']['App']['GetContactPhotos'](arg1);
+}
+
 export function GetContactSource(arg1) {
   return window['go']['app']['App']['GetContactSource'](arg1);
 }
@@ -638,6 +646,10 @@ export function GetShowMessageListCircles() {
   return window['go']['app']['App']['GetShowMessageListCircles']();
 }
 
+export function GetShowMessageListProfilePics() {
+  return window['go']['app']['App']['GetShowMessageListProfilePics']();
+}
+
 export function GetShowTitleBar() {
   return window['go']['app']['App']['GetShowTitleBar']();
 }
@@ -652,6 +664,18 @@ export function GetSourceAddressbooks(arg1) {
 
 export function GetSpecialFolder(arg1, arg2) {
   return window['go']['app']['App']['GetSpecialFolder'](arg1, arg2);
+}
+
+export function GetSpellcheckCustomWords() {
+  return window['go']['app']['App']['GetSpellcheckCustomWords']();
+}
+
+export function GetSpellcheckEnabled() {
+  return window['go']['app']['App']['GetSpellcheckEnabled']();
+}
+
+export function GetSpellcheckLanguages() {
+  return window['go']['app']['App']['GetSpellcheckLanguages']();
 }
 
 export function GetStartHidden() {
@@ -962,6 +986,10 @@ export function RemovePGPKeyServer(arg1) {
   return window['go']['app']['App']['RemovePGPKeyServer'](arg1);
 }
 
+export function RemoveSpellcheckCustomWord(arg1) {
+  return window['go']['app']['App']['RemoveSpellcheckCustomWord'](arg1);
+}
+
 export function RemoveTrustedCertificate(arg1) {
   return window['go']['app']['App']['RemoveTrustedCertificate'](arg1);
 }
@@ -1142,12 +1170,24 @@ export function SetShowMessageListCircles(arg1) {
   return window['go']['app']['App']['SetShowMessageListCircles'](arg1);
 }
 
+export function SetShowMessageListProfilePics(arg1) {
+  return window['go']['app']['App']['SetShowMessageListProfilePics'](arg1);
+}
+
 export function SetShowTitleBar(arg1) {
   return window['go']['app']['App']['SetShowTitleBar'](arg1);
 }
 
 export function SetShowViewerCircles(arg1) {
   return window['go']['app']['App']['SetShowViewerCircles'](arg1);
+}
+
+export function SetSpellcheckEnabled(arg1) {
+  return window['go']['app']['App']['SetSpellcheckEnabled'](arg1);
+}
+
+export function SetSpellcheckLanguages(arg1) {
+  return window['go']['app']['App']['SetSpellcheckLanguages'](arg1);
 }
 
 export function SetStartHidden(arg1) {
