@@ -595,6 +595,7 @@
     "replyForwardWithHelp": "Identita, která bude v editoru předvybrána při odpovídání na zprávy přijaté tímto účtem nebo při jejich přeposílání.",
     "replyForwardWithDefault": "Výchozí účet pro odesílání",
     "smtpAuthentication": "Ověření SMTP",
+    "authMechanism": "Metoda ověření",
     "smtpUseSameAsIncoming": "Stejné jako pro příchozí server",
     "smtpUsernamePlaceholder": "uzivatel-smtp@example.com",
     "smtpPasswordPlaceholder": "Heslo SMTP",

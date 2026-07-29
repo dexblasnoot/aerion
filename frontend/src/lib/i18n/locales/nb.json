@@ -590,6 +590,7 @@
     "replyForwardWithHelp": "Identiteten som forhåndsvelges i skrivevinduet når du svarer på eller videresender meldinger mottatt her.",
     "replyForwardWithDefault": "Standard sendekonto",
     "smtpAuthentication": "SMTP-autentisering",
+    "authMechanism": "Autentiseringsmetode",
     "smtpUseSameAsIncoming": "Samme som innkommende tjener",
     "smtpUsernamePlaceholder": "smtp-bruker@eksempel.com",
     "smtpPasswordPlaceholder": "SMTP-passord",

@@ -595,6 +595,7 @@
     "replyForwardWithHelp": "Identità da preselezionare nell'editor quando si risponde o si inoltrano i messaggi ricevuti qui.",
     "replyForwardWithDefault": "Account di invio predefinito",
     "smtpAuthentication": "Autenticazione SMTP",
+    "authMechanism": "Metodo di autenticazione",
     "smtpUseSameAsIncoming": "Come per il server in entrata",
     "smtpUsernamePlaceholder": "utente-smtp@esempio.com",
     "smtpPasswordPlaceholder": "Password SMTP",

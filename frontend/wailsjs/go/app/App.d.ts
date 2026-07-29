@@ -653,7 +653,7 @@ export function TestConnection(arg1:account.AccountConfig):Promise<app.Connectio
 
 export function TestOAuthConnection(arg1:string):Promise<void>;
 
-export function TestSMTPConnection(arg1:string,arg2:number,arg3:string,arg4:string,arg5:string):Promise<void>;
+export function TestSMTPConnection(arg1:string,arg2:number,arg3:string,arg4:string,arg5:string,arg6:string):Promise<void>;
 
 export function Trash(arg1:Array<string>):Promise<boolean>;
 

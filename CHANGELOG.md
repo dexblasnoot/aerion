@@ -4,7 +4,8 @@
 **v0.3.3 - 07-30-2026**
 ---
 
-
+- Added manual config of IMAP/SMTP auth mech
+- Fixed IMAP/SMTP auto auth mech - [#365](https://github.com/hkdb/aerion/issues/355)
 
 
 **v0.3.2 - 07-16-2026**

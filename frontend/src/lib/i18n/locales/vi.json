@@ -595,6 +595,7 @@
     "replyForwardWithHelp": "Tài khoản được chọn sẵn trong cửa sổ soạn thư khi trả lời hoặc chuyển tiếp thư nhận ở đây.",
     "replyForwardWithDefault": "Tài khoản gửi mặc định",
     "smtpAuthentication": "Xác thực SMTP",
+    "authMechanism": "Phương thức xác thực",
     "smtpUseSameAsIncoming": "Giống máy chủ nhận thư",
     "smtpUsernamePlaceholder": "nguoi-dung-smtp@example.com",
     "smtpPasswordPlaceholder": "Mật khẩu SMTP",

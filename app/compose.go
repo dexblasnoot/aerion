@@ -152,6 +152,7 @@ func (ops *composeOps) getIMAPCredentials(ctx context.Context, accountID string)
 	config.Host = acc.IMAPHost
 	config.Port = acc.IMAPPort
 	config.Security = imap.SecurityType(acc.IMAPSecurity)
+	config.AuthMechanism = string(acc.IMAPAuthMechanism)
 	config.Username = acc.Username
 	config.TLSConfig = certificate.BuildTLSConfig(acc.IMAPHost, ops.certStore)
 
@@ -385,6 +386,7 @@ func (ops *composeOps) sendMessage(ctx context.Context, accountID string, msg sm
 	smtpConfig.Host = acc.SMTPHost
 	smtpConfig.Port = acc.SMTPPort
 	smtpConfig.Security = smtp.SecurityType(acc.SMTPSecurity)
+	smtpConfig.AuthMechanism = string(acc.EffectiveSMTPAuthMechanism())
 	smtpConfig.Username = acc.Username
 	// Shared mailboxes authenticate SMTP with the parent account's username
 	if acc.SharedMailboxParentID != "" {
@@ -889,7 +891,7 @@ func parseDataURL(dataURL string) (contentType, base64Data string) {
 }
 
 // TestSMTPConnection tests SMTP connection settings
-func (a *App) TestSMTPConnection(host string, port int, security, username, password string) error {
+func (a *App) TestSMTPConnection(host string, port int, security, username, password, authMechanism string) error {
 	log := logging.WithComponent("app")
 
 	// Map security string to type
@@ -913,6 +915,7 @@ func (a *App) TestSMTPConnection(host string, port int, security, username, pass
 	config.Username = username
 	config.Password = password
 	config.AuthType = smtp.AuthTypePassword
+	config.AuthMechanism = authMechanism
 	config.TLSConfig = certificate.BuildTLSConfig(host, a.certStore)
 
 	client := smtp.NewClient(config)

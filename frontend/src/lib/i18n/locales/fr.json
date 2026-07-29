@@ -595,6 +595,7 @@
     "replyForwardWithHelp": "Identité à pré-sélectionner dans le compositeur lors d'une réponse ou d'un transfert.",
     "replyForwardWithDefault": "Compte d'envoi par défaut",
     "smtpAuthentication": "Authentification SMTP",
+    "authMechanism": "Méthode d'authentification",
     "smtpUseSameAsIncoming": "Identique au serveur entrant",
     "smtpUsernamePlaceholder": "utilisateur-smtp@exemple.com",
     "smtpPasswordPlaceholder": "Mot de passe SMTP",

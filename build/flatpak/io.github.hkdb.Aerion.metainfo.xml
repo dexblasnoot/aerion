@@ -288,7 +288,8 @@
     <release version="0.3.3" date="2026-07-30">
       <description>
         <ul>
-          <li></li>
+          <li>Added manual config of IMAP/SMTP auth mech</li>
+          <li>Fixed IMAP/SMTP auto auth mech - [#365](https://github.com/hkdb/aerion/issues/355)</li>
         </ul>
       </description>
     </release>

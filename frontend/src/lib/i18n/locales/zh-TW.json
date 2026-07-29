@@ -595,6 +595,7 @@
     "replyForwardWithHelp": "回覆或轉寄在此收到的郵件時，在撰寫郵件中預先選擇的身分。",
     "replyForwardWithDefault": "預設寄件帳號",
     "smtpAuthentication": "SMTP 身分驗證",
+    "authMechanism": "身分驗證方式",
     "smtpUseSameAsIncoming": "與收件伺服器相同",
     "smtpUsernamePlaceholder": "smtp-user@example.com",
     "smtpPasswordPlaceholder": "SMTP 密碼",

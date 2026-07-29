@@ -445,11 +445,12 @@ func (a *App) SendReadReceipt(accountID, messageID string) error {
 
 	// Create SMTP config
 	smtpConfig := smtp.ClientConfig{
-		Host:      acc.SMTPHost,
-		Port:      acc.SMTPPort,
-		Username:  acc.Username,
-		Security:  smtp.SecurityType(acc.SMTPSecurity),
-		TLSConfig: certificate.BuildTLSConfig(acc.SMTPHost, a.certStore),
+		Host:          acc.SMTPHost,
+		Port:          acc.SMTPPort,
+		Username:      acc.Username,
+		Security:      smtp.SecurityType(acc.SMTPSecurity),
+		AuthMechanism: string(acc.EffectiveSMTPAuthMechanism()),
+		TLSConfig:     certificate.BuildTLSConfig(acc.SMTPHost, a.certStore),
 	}
 
 	// Handle authentication based on auth type

@@ -597,6 +597,7 @@
     "replyForwardWithHelp": "Identity to pre-select in the composer when replying to or forwarding messages received here.",
     "replyForwardWithDefault": "Default sending account",
     "smtpAuthentication": "SMTP authentication",
+    "authMechanism": "Authentication method",
     "smtpUseSameAsIncoming": "Same as incoming server",
     "smtpUsernamePlaceholder": "smtp-user@example.com",
     "smtpPasswordPlaceholder": "SMTP password",

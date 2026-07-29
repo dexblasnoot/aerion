@@ -8,9 +8,11 @@ export namespace account {
 	    imapHost: string;
 	    imapPort: number;
 	    imapSecurity: string;
+	    imapAuthMechanism: string;
 	    smtpHost: string;
 	    smtpPort: number;
 	    smtpSecurity: string;
+	    smtpAuthMechanism: string;
 	    noOutgoingServer: boolean;
 	    smtpUsername: string;
 	    replyForwardIdentityId: string;
@@ -49,9 +51,11 @@ export namespace account {
 	        this.imapHost = source["imapHost"];
 	        this.imapPort = source["imapPort"];
 	        this.imapSecurity = source["imapSecurity"];
+	        this.imapAuthMechanism = source["imapAuthMechanism"];
 	        this.smtpHost = source["smtpHost"];
 	        this.smtpPort = source["smtpPort"];
 	        this.smtpSecurity = source["smtpSecurity"];
+	        this.smtpAuthMechanism = source["smtpAuthMechanism"];
 	        this.noOutgoingServer = source["noOutgoingServer"];
 	        this.smtpUsername = source["smtpUsername"];
 	        this.replyForwardIdentityId = source["replyForwardIdentityId"];
@@ -102,9 +106,11 @@ export namespace account {
 	    imapHost: string;
 	    imapPort: number;
 	    imapSecurity: string;
+	    imapAuthMechanism: string;
 	    smtpHost: string;
 	    smtpPort: number;
 	    smtpSecurity: string;
+	    smtpAuthMechanism: string;
 	    noOutgoingServer: boolean;
 	    smtpUsername: string;
 	    smtpPassword: string;
@@ -139,9 +145,11 @@ export namespace account {
 	        this.imapHost = source["imapHost"];
 	        this.imapPort = source["imapPort"];
 	        this.imapSecurity = source["imapSecurity"];
+	        this.imapAuthMechanism = source["imapAuthMechanism"];
 	        this.smtpHost = source["smtpHost"];
 	        this.smtpPort = source["smtpPort"];
 	        this.smtpSecurity = source["smtpSecurity"];
+	        this.smtpAuthMechanism = source["smtpAuthMechanism"];
 	        this.noOutgoingServer = source["noOutgoingServer"];
 	        this.smtpUsername = source["smtpUsername"];
 	        this.smtpPassword = source["smtpPassword"];
