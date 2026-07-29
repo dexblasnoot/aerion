@@ -294,6 +294,7 @@
           <li>Fixed glitch when rapid deleting messages</li>
           <li>Refactored to engine-level serialization</li>
           <li>Improved toast notification logic - #115</li>
+          <li>Added states to fix unwanted message list reset - #348</li>
         </ul>
       </description>
     </release>
