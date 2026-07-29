@@ -925,7 +925,9 @@
     "selectPresetColor": "Vybrat {color}",
     "backToList": "Zpět na seznam zpráv",
     "toggleSidebar": "Přepnout postranní panel",
-    "closeSidebar": "Zavřít postranní panel"
+    "closeSidebar": "Zavřít postranní panel",
+    "showAllToasts": "Zobrazit všechna oznámení",
+    "collapseToasts": "Sbalit oznámení"
   },
   "window": {
     "minimize": "Minimalizovat",

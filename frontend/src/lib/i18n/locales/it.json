@@ -925,7 +925,9 @@
     "selectPresetColor": "Seleziona {color}",
     "backToList": "Torna all'elenco messaggi",
     "toggleSidebar": "Attiva/disattiva la barra laterale",
-    "closeSidebar": "Chiudi barra laterale"
+    "closeSidebar": "Chiudi barra laterale",
+    "showAllToasts": "Mostra tutte le notifiche",
+    "collapseToasts": "Comprimi le notifiche"
   },
   "window": {
     "minimize": "Riduci",

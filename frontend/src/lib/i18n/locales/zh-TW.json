@@ -925,7 +925,9 @@
     "selectPresetColor": "選擇 {color}",
     "backToList": "返回郵件清單",
     "toggleSidebar": "切換側邊欄",
-    "closeSidebar": "關閉側邊欄"
+    "closeSidebar": "關閉側邊欄",
+    "showAllToasts": "顯示全部通知",
+    "collapseToasts": "收起通知"
   },
   "window": {
     "minimize": "最小化",

@@ -9,6 +9,7 @@
 - Fixed IMAP/SMTP auto auth mech - [#365](https://github.com/hkdb/aerion/issues/355)
 - Fixed glitch when rapid deleting messages
 - Refactored to engine-level serialization
+- Improved toast notification logic - [#115](https://github.com/hkdb/aerion/issues/115)
 
 
 **v0.3.2 - 07-16-2026**

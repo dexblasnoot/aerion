@@ -925,7 +925,9 @@
     "selectPresetColor": "{color} auswählen",
     "backToList": "Zurück zur Nachrichtenliste",
     "toggleSidebar": "Seitenleiste ein-/ausblenden",
-    "closeSidebar": "Seitenleiste schließen"
+    "closeSidebar": "Seitenleiste schließen",
+    "showAllToasts": "Alle Benachrichtigungen anzeigen",
+    "collapseToasts": "Benachrichtigungen einklappen"
   },
   "window": {
     "minimize": "Minimieren",

@@ -293,6 +293,7 @@
           <li>Fixed IMAP/SMTP auto auth mech - [#365](https://github.com/hkdb/aerion/issues/355)</li>
           <li>Fixed glitch when rapid deleting messages</li>
           <li>Refactored to engine-level serialization</li>
+          <li>Improved toast notification logic - #115</li>
         </ul>
       </description>
     </release>

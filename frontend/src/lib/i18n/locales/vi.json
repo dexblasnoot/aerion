@@ -925,7 +925,9 @@
     "selectPresetColor": "Chọn {color}",
     "backToList": "Quay lại danh sách thư",
     "toggleSidebar": "Bật/tắt thanh bên",
-    "closeSidebar": "Đóng thanh bên"
+    "closeSidebar": "Đóng thanh bên",
+    "showAllToasts": "Hiển thị tất cả thông báo",
+    "collapseToasts": "Thu gọn thông báo"
   },
   "window": {
     "minimize": "Thu nhỏ",

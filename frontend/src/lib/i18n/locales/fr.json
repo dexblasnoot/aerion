@@ -918,7 +918,9 @@
     "selectPresetColor": "Choisir {color}",
     "backToList": "Retour à la liste",
     "toggleSidebar": "Afficher/Masquer la barre latérale",
-    "closeSidebar": "Fermer la barre latérale"
+    "closeSidebar": "Fermer la barre latérale",
+    "showAllToasts": "Afficher toutes les notifications",
+    "collapseToasts": "Réduire les notifications"
   },
   "window": {
     "minimize": "Minimiser",

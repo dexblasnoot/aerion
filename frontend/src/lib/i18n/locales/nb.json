@@ -905,7 +905,9 @@
     "selectPresetColor": "Velg {color}",
     "backToList": "Tilbake til meldingsliste",
     "toggleSidebar": "Veksle sidelinje",
-    "closeSidebar": "Lukk sidelinje"
+    "closeSidebar": "Lukk sidelinje",
+    "showAllToasts": "Vis alle varsler",
+    "collapseToasts": "Skjul varsler"
   },
   "window": {
     "minimize": "Minimer",

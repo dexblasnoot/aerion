@@ -927,7 +927,9 @@
     "selectPresetColor": "Select {color}",
     "backToList": "Back to message list",
     "toggleSidebar": "Toggle sidebar",
-    "closeSidebar": "Close sidebar"
+    "closeSidebar": "Close sidebar",
+    "showAllToasts": "Show all notifications",
+    "collapseToasts": "Collapse notifications"
   },
   "window": {
     "minimize": "Minimize",
