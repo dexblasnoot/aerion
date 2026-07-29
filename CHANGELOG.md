@@ -11,6 +11,7 @@
 - Refactored to engine-level serialization
 - Improved toast notification logic - [#115](https://github.com/hkdb/aerion/issues/115)
 - Added states to fix unwanted message list reset - [#348](https://github.com/hkdb/aerion/issues/348)
+- Improved CalDAV discovery - [#363](https://github.com/hkdb/aerion/issues/363)
 
 
 **v0.3.2 - 07-16-2026**

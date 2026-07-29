@@ -48,14 +48,13 @@
       </div>
 
       <div class="space-y-4 max-h-[60vh] overflow-y-auto text-sm">
-        <p>🚀 Welcome to Aerion v0.3.2!</p>
+        <p>🚀 Welcome to Aerion v0.3.3-dev!</p>
 
         <p>Here are the highlights of this release:</p>
 
         <ul class="list-disc pl-6 space-y-1">
-          <li>✏️ Spellcheck functionality in the composer has been added</li>
-          <li>📩 Improved sync and pushed changes (IDLE)</li>
-          <li>📑 Improved profile pic support - Requires force re-sync of contacts</li>
+          <li>✏️ Added manual config of auth mechanism</li>
+          <li>📩 Improved sync guards to improve stability</li>
           <li>🐛 Bug fixes and improvements</li>
         </ul>
 

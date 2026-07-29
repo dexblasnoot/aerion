@@ -143,6 +143,9 @@ func discoverAddressbooks(baseURL, username string, httpClient webdav.HTTPClient
 	if err == nil && len(addressbooks) > 0 {
 		return addressbooks, nil
 	}
+	// The direct-URL attempt's error is the most user-relevant one — later
+	// fallback rungs can fail for unrelated reasons and would mask it (#363).
+	directErr := err
 	log.Debug().Err(err).Msg("Direct URL discovery failed, trying .well-known")
 
 	// Method 2: Try .well-known/carddav
@@ -171,6 +174,9 @@ func discoverAddressbooks(baseURL, username string, httpClient webdav.HTTPClient
 		}
 	}
 
+	if directErr != nil {
+		return nil, fmt.Errorf("no addressbooks found at %s: %w", baseURL, directErr)
+	}
 	return nil, fmt.Errorf("no addressbooks found at %s", baseURL)
 }
 
@@ -186,9 +192,17 @@ func tryDiscoverFromURL(ctx context.Context, httpClient webdav.HTTPClient, urlSt
 	// Try to find the current user's principal
 	principal, err := client.FindCurrentUserPrincipal(ctx)
 	if err != nil {
-		log.Debug().Err(err).Msg("FindCurrentUserPrincipal failed")
-		// Try the URL directly as addressbook home
-		return tryListAddressbooksAt(ctx, httpClient, urlStr, log)
+		// go-webdav's probe path.Join-strips a trailing slash from the request
+		// path, 404ing servers that serve the collection only at "/x/"
+		// (SabreDAV/Davis, #363). Retry with a raw PROPFIND that keeps the URL
+		// exactly as given (and once with "/" appended).
+		rawPrincipal, rawErr := davutil.FindCurrentUserPrincipalRaw(ctx, httpClient, urlStr)
+		if rawErr != nil {
+			log.Debug().Err(err).Msg("FindCurrentUserPrincipal failed")
+			// Try the URL directly as addressbook home
+			return tryListAddressbooksAt(ctx, httpClient, urlStr, log)
+		}
+		principal = rawPrincipal
 	}
 
 	log.Debug().Str("principal", principal).Msg("Found principal")
