@@ -292,6 +292,7 @@
           <li>Added digest auth for contacts and calendars - #313</li>
           <li>Fixed IMAP/SMTP auto auth mech - [#365](https://github.com/hkdb/aerion/issues/355)</li>
           <li>Fixed glitch when rapid deleting messages</li>
+          <li>Refactored to engine-level serialization</li>
         </ul>
       </description>
     </release>
