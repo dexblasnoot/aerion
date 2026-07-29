@@ -50,10 +50,7 @@ type DiscoveredCalendar struct {
 // hit the affected XML elements — 1C will factor / inline the fix when
 // ETag-based sync needs it.
 func DiscoverCalendars(ctx context.Context, baseURL, username, password string) (string, []DiscoveredCalendar, error) {
-	httpClient := webdav.HTTPClientWithBasicAuth(
-		newCalDAVHTTPClient(30*time.Second),
-		username, password,
-	)
+	httpClient := davutil.NewBasicDigestHTTPClient(username, password, 30*time.Second)
 	return discoverCalendars(ctx, baseURL, username, httpClient)
 }
 
@@ -411,19 +408,3 @@ func resolveCalDAVURL(baseURL, href string) string {
 	return base.ResolveReference(ref).String()
 }
 
-// newCalDAVHTTPClient returns the plain *http.Client used for discovery.
-// Mirrors `internal/carddav/client.go::newHTTPClient` MINUS the
-// xmlFixTransport. The XML-fix is needed for the ETag / lastmodified parsing
-// quirks in some servers; discovery PROPFIND doesn't touch those fields.
-// If 1C's sync layer hits the same compat issues, the transport gets factored
-// at that point (likely as a shared internal/davutil package the host
-// exposes, since calendar can't import internal/carddav).
-func newCalDAVHTTPClient(timeout time.Duration) *http.Client {
-	// Route through davutil so the client uses the host-installed cert-aware
-	// (TOFU) base transport — same trusted-cert store as IMAP/SMTP — instead of
-	// the implicit http.DefaultTransport.
-	return &http.Client{
-		Timeout:   timeout,
-		Transport: davutil.NewXMLFixTransport(nil),
-	}
-}

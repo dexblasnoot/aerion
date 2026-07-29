@@ -14,6 +14,7 @@ require (
 	github.com/emersion/go-webdav v0.7.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/google/uuid v1.6.0
+	github.com/icholy/digest v1.2.0
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/rs/zerolog v1.34.0
 	github.com/teamwork/tnef v0.0.0-20200108124832-7deabccfdb32

@@ -5,6 +5,7 @@
 ---
 
 - Added manual config of IMAP/SMTP auth mech
+- Added digest auth for contacts and calendars - [#313](https://github.com/hkdb/aerion/issues/313)
 - Fixed IMAP/SMTP auto auth mech - [#365](https://github.com/hkdb/aerion/issues/355)
 
 

@@ -18,14 +18,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// newHTTPClient builds an HTTP client with the WebDAV xmlfix transport
-// applied. Both this package and calendar's CalDAV provider use the same
-// shared shape — see internal/kit/davutil. The local helper stays as a
-// thin alias so existing call sites don't churn.
-func newHTTPClient(timeout time.Duration) *http.Client {
-	return davutil.NewHTTPClient(timeout)
-}
-
 // Client wraps the CardDAV client with discovery and convenience methods
 type Client struct {
 	client   *carddav.Client
@@ -42,14 +34,14 @@ type Client struct {
 
 // addressbookHTTPClient returns the go-webdav HTTPClient for a per-addressbook
 // operation. When the Client was built with a caller-supplied (bearer) client,
-// that client carries the auth and is reused as-is. Otherwise a Basic-auth
-// client is built from the stored credentials with the requested timeout
-// (preserving the original per-operation timeouts).
+// that client carries the auth and is reused as-is. Otherwise a password-auth
+// (Basic with Digest upgrade) client is built from the stored credentials with
+// the requested timeout (preserving the original per-operation timeouts).
 func (c *Client) addressbookHTTPClient(timeout time.Duration) webdav.HTTPClient {
 	if c.injected != nil {
 		return c.injected
 	}
-	return webdav.HTTPClientWithBasicAuth(newHTTPClient(timeout), c.username, c.password)
+	return davutil.NewBasicDigestHTTPClient(c.username, c.password, timeout)
 }
 
 // normalizeURL parses baseURL and defaults a missing scheme to https.
@@ -71,8 +63,9 @@ func NewClient(baseURL, username, password string) (*Client, error) {
 		return nil, err
 	}
 
-	// Create HTTP client with XML-fix transport, wrapped for Basic auth.
-	httpClient := webdav.HTTPClientWithBasicAuth(newHTTPClient(30*time.Second), username, password)
+	// Create HTTP client with XML-fix transport and password auth (Basic,
+	// upgrading to Digest on challenge).
+	httpClient := davutil.NewBasicDigestHTTPClient(username, password, 30*time.Second)
 
 	client, err := carddav.NewClient(httpClient, parsedURL.String())
 	if err != nil {
@@ -117,7 +110,7 @@ func NewClientWithHTTPClient(httpClient webdav.HTTPClient, baseURL string) (*Cli
 // 2. Direct PROPFIND on the URL
 // 3. Common paths (/remote.php/dav for Nextcloud, etc.)
 func DiscoverAddressbooks(baseURL, username, password string) ([]AddressbookInfo, error) {
-	httpClient := webdav.HTTPClientWithBasicAuth(newHTTPClient(30*time.Second), username, password)
+	httpClient := davutil.NewBasicDigestHTTPClient(username, password, 30*time.Second)
 	return discoverAddressbooks(baseURL, username, httpClient)
 }
 
