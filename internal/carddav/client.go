@@ -3,6 +3,7 @@ package carddav
 import (
 	"bytes"
 	"context"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -794,6 +795,136 @@ func (c *Client) SyncAddressbook(addressbookPath, syncToken string) (*SyncResult
 		Msg("Incremental sync completed")
 
 	return result, nil
+}
+
+// FetchContactsEnumerate fetches all contacts using only baseline WebDAV
+// primitives: a Depth:1 PROPFIND to enumerate the collection's vCard hrefs,
+// then addressbook-multiget for the bodies, then per-href GET when the server
+// rejects multiget REPORTs too. Third sync tier for minimal servers
+// (Mailfence, #366) that 501 sync-collection AND 409 addressbook-query. The
+// enumeration is hand-rolled rather than go-webdav's ReadDir because ReadDir
+// hard-requires getcontentlength on file entries — exactly the kind of
+// property this server class omits.
+func (c *Client) FetchContactsEnumerate(addressbookPath string) ([]*ParsedRecord, error) {
+	ctx := context.Background()
+	fullPath := resolveURL(c.baseURL, addressbookPath)
+	httpClient := c.addressbookHTTPClient(60 * time.Second)
+
+	paths, err := enumerateVCardHrefs(ctx, httpClient, fullPath, addressbookPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to enumerate addressbook: %w", err)
+	}
+	c.log.Debug().Int("count", len(paths)).Str("path", addressbookPath).Msg("Enumerated vCard hrefs via PROPFIND")
+	if len(paths) == 0 {
+		return nil, nil
+	}
+
+	abClient, err := carddav.NewClient(httpClient, fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client for addressbook: %w", err)
+	}
+	records, err := c.fetchContactsByPath(abClient, addressbookPath, paths)
+	if err == nil {
+		return records, nil
+	}
+
+	// Last resort: a server that rejects REPORTs entirely — fetch each vCard
+	// with a plain GET.
+	c.log.Debug().Err(err).Msg("Multiget rejected, fetching vCards individually via GET")
+	records = make([]*ParsedRecord, 0, len(paths))
+	for _, p := range paths {
+		obj, getErr := abClient.GetAddressObject(ctx, p)
+		if getErr != nil {
+			return nil, fmt.Errorf("failed to fetch %s: %w", p, getErr)
+		}
+		parsed := parseVCard(*obj)
+		if parsed == nil {
+			continue
+		}
+		records = append(records, parsed)
+	}
+	return records, nil
+}
+
+// enumerateVCardHrefs lists a collection's member hrefs with a minimal
+// Depth:1 PROPFIND (resourcetype + getcontenttype only) and a tolerant parse.
+// Collections (including the addressbook itself) are skipped; untyped members
+// are kept — minimal servers often omit getcontenttype for vCards.
+func enumerateVCardHrefs(ctx context.Context, httpClient webdav.HTTPClient, fullPath, addressbookPath string) ([]string, error) {
+	const propfindBody = `<?xml version="1.0" encoding="UTF-8"?>` +
+		`<D:propfind xmlns:D="DAV:"><D:prop><D:resourcetype/><D:getcontenttype/></D:prop></D:propfind>`
+	req, err := http.NewRequestWithContext(ctx, "PROPFIND", fullPath, strings.NewReader(propfindBody))
+	if err != nil {
+		return nil, fmt.Errorf("build enumeration PROPFIND: %w", err)
+	}
+	req.Header.Set("Depth", "1")
+	req.Header.Set("Content-Type", "application/xml")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("enumeration PROPFIND: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusMultiStatus {
+		io.Copy(io.Discard, resp.Body) //nolint:errcheck // best-effort drain
+		return nil, fmt.Errorf("enumeration PROPFIND: %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	if err != nil {
+		return nil, fmt.Errorf("read enumeration response: %w", err)
+	}
+
+	var ms struct {
+		XMLName  xml.Name `xml:"DAV: multistatus"`
+		Response []struct {
+			Href     string `xml:"href"`
+			Propstat []struct {
+				Prop struct {
+					ResourceType struct {
+						Collection *struct{} `xml:"collection"`
+					} `xml:"resourcetype"`
+					ContentType string `xml:"getcontenttype"`
+				} `xml:"prop"`
+			} `xml:"propstat"`
+		} `xml:"response"`
+	}
+	if err := xml.Unmarshal(body, &ms); err != nil {
+		return nil, fmt.Errorf("parse enumeration response: %w", err)
+	}
+
+	collection := strings.TrimSuffix(addressbookPath, "/")
+	var paths []string
+	for _, r := range ms.Response {
+		href := strings.TrimSpace(r.Href)
+		if href == "" {
+			continue
+		}
+		// Some servers return absolute URLs in hrefs — reduce to the path.
+		if strings.HasPrefix(href, "http://") || strings.HasPrefix(href, "https://") {
+			if u, uerr := url.Parse(href); uerr == nil {
+				href = u.Path
+			}
+		}
+		isCollection := false
+		contentType := ""
+		for _, ps := range r.Propstat {
+			if ps.Prop.ResourceType.Collection != nil {
+				isCollection = true
+			}
+			if ps.Prop.ContentType != "" {
+				contentType = ps.Prop.ContentType
+			}
+		}
+		if isCollection || strings.TrimSuffix(href, "/") == collection {
+			continue
+		}
+		if contentType != "" && !strings.Contains(contentType, "vcard") && !strings.HasSuffix(href, ".vcf") {
+			continue
+		}
+		paths = append(paths, href)
+	}
+	return paths, nil
 }
 
 // fetchContactsByPath fetches records by their paths using addressbook-multiget.

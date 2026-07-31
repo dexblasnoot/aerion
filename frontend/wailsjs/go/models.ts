@@ -1522,6 +1522,7 @@ export namespace carddav {
 	    writable: boolean;
 	    sync_interval: number;
 	    enabled_addressbooks?: string[];
+	    addressbook_names?: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new SourceConfig(source);
@@ -1539,6 +1540,7 @@ export namespace carddav {
 	        this.writable = source["writable"];
 	        this.sync_interval = source["sync_interval"];
 	        this.enabled_addressbooks = source["enabled_addressbooks"];
+	        this.addressbook_names = source["addressbook_names"];
 	    }
 	}
 	export class SourceError {

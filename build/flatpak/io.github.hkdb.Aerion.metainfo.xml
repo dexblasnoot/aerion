@@ -296,6 +296,7 @@
           <li>Improved toast notification logic - #115</li>
           <li>Added states to fix unwanted message list reset - #348</li>
           <li>Improved CalDAV discovery - #363</li>
+          <li>Basic CarDAV (Mailfence) support - #366</li>
         </ul>
       </description>
     </release>
