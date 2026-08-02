@@ -14,7 +14,7 @@
 	},
 	"drag": {
 	  "errorSave": "Klarte ikke å lagre hendelsen: {message}",
-	  "recurringHint": "Dra er ikke tilgjengelig for gjentakende hendelser. Bruk detaljvisningen for å redigere."
+	  "recurringHint": "Dra og slipp er ikke tilgjengelig for gjentakende hendelser. Bruk detaljvisningen for å redigere."
 	},
 	"hooks": {
 	  "loading": "Laster kalenderne dine…",
